@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextName>core-${spring.profiles.active:-default}</contextName>
+
+    <jmxConfigurator/>
+
+    <appender name="fullConsole" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d ${spring.profiles.active:-default} ${HOSTNAME} %X{epd:-} %X{client-ip:-localhost} %X{AuthenticationName} %X{request-id} %X{dd.trace_id:-0} %X{dd.span_id:-0} %-5level %logger: %msg %ex %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="simpleConsole" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%date{HH:mm:ss.SSS} ${spring.profiles.active:-default} %X{AuthenticationName} %X{request-id} %-5level %logger: %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <springProfile name="uat | dev | prod">
+        <logger name="greenwood" level="DEBUG"/>
+
+        <root level="INFO">
+            <appender-ref ref="fullConsole"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="localhost | vpn | localstack">
+        <logger name="greenwood" level="DEBUG"/>
+        <!-- list endpoint mappings -->
+<!--                <logger name="org.springframework.web" level="TRACE"/>-->
+        <!-- Log All HTTP Calls -->
+<!--        <logger name="greenwood.auth.config.OkHttpConfig" level="TRACE"/>-->
+
+
+        <root level="INFO">
+            <appender-ref ref="simpleConsole"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="default | test">
+        <!-- list endpoint mappings -->
+<!--        <logger name="org.springframework.web" level="TRACE"/>-->
+        <logger name="greenwood" level="DEBUG"/>
+
+        <root level="INFO">
+            <appender-ref ref="simpleConsole"/>
+        </root>
+    </springProfile>
+
+</configuration>
