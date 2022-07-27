@@ -29,11 +29,15 @@ class OAuth2LoginSecurityConfig(
         // .oauth2ResourceServer()
         //n cod .jwt()
 
+        http.oauth2ResourceServer().jwt()
+
         http.oauth2Login()
             .tokenEndpoint()
             .accessTokenResponseClient(accessTokenResponseClient())
             .and()
             .authorizationEndpoint().authorizationRequestRepository(authorizationRequestRepository())
+
+
 
 
     }

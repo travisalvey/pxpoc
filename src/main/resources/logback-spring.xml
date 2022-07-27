@@ -42,7 +42,7 @@
 <!--        <logger name="org.springframework.web" level="TRACE"/>-->
         <logger name="greenwood" level="DEBUG"/>
 
-        <root level="INFO">
+        <root level="DEBUG">
             <appender-ref ref="simpleConsole"/>
         </root>
     </springProfile>

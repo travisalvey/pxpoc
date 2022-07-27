@@ -1,5 +1,7 @@
-package greenwood.pxpoc.controller
+package greenwood.pxpoc.auth
 
+import com.nimbusds.jwt.SignedJWT
+import greenwood.pxpoc.model.PlaidToken
 import greenwood.pxpoc.model.Token
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -28,7 +30,6 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResp
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames
 import org.springframework.security.oauth2.core.oidc.OidcScopes
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames
-import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.util.CollectionUtils
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
@@ -112,13 +113,22 @@ class SampleController(
     }
 
     @GetMapping("/users/auth_code", produces = ["application/json"])
-    fun exchangeForAccessToken(request: HttpServletRequest, response: HttpServletResponse): Token {
+    fun exchangeForAccessToken(request: HttpServletRequest): Token {
         logger.debug("called /users/auth_code")
 
         /* What other params do we expect plaid to send? -- check their api specs
             - X-PLAID-CLIENT-ID and X-PLAID-SECRET  -- how do we validate/secure these??
             - do they include their redirect URI? -- Sounds like we have to verify it here?
         */
+
+        /* Query params passed by Plaid
+            state=<PLAID_GENERATED>
+            response_type=code
+            redirect_uri=<PLAID_GENERATED>
+            client_id=PLAID
+            institution_id=ins_<YOUR_INSTITUTION_ID>
+            application_id=<PLAID_APPLICATION_ID>
+         */
 
         //TODO: Should we just use a simple rest client and hit keycloak for the token instead of trying to reuse
         // all the Spring infrastructure??
@@ -144,7 +154,10 @@ class SampleController(
 
         //TODO: What response does Plaid actually want?
         val responseToken =  createResponseToken(oAuth2AccessTokenResponse)
-        logger.debug { "REMOVE ME. Response Token: $responseToken" }
+        logger.debug { "REMOVE ME. Full Response Token: $responseToken" }
+
+        val plaidToken = createPlaidToken(oAuth2AccessTokenResponse)
+        logger.debug {"REMOVE ME. Plaid Token: $plaidToken"}
         return responseToken
     }
 
@@ -166,6 +179,21 @@ class SampleController(
             scope = accessToken.scopes
         )
         return responseToken
+    }
+
+    private fun createPlaidToken(oAuth2AccessTokenResponse: OAuth2AccessTokenResponse) : PlaidToken {
+        val accessToken = oAuth2AccessTokenResponse.accessToken.tokenValue
+        val additionalParams = oAuth2AccessTokenResponse.additionalParameters
+        val idToken = additionalParams.get("id_token").toString()
+
+        //claims.get("sub")
+        return PlaidToken(accessToken = accessToken, getClaim(idToken, "sub"))
+    }
+
+    private fun getClaim(token : String, claimKey : String) : String {
+        val parsedJWT = SignedJWT.parse(token)
+        val claims = parsedJWT.payload.toJSONObject()
+        return claims.get(claimKey).toString()
     }
 
 
@@ -191,7 +219,7 @@ class SampleController(
             .scopes(clientRegistration.scopes)
             .state(DEFAULT_STATE_GENERATOR.generateKey())
 
-        logger.info("Generated the OAuth2AuthorizationRequest from scratch for ${clientRegistration.registrationId}")
+        logger.info("Generated the OAuth2AuthorizationRequest detailsfrom scratch for ${clientRegistration.registrationId}")
         return builder.build()
     }
 
